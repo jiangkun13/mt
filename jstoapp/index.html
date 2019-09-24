@@ -1,0 +1,236 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dsbridge/dist/dsbridge.js"> </script>
+    <style>
+        @-ms-viewport { width:device-width; }
+        @media only screen and (min-device-width:800px) { html { overflow:hidden; } }
+        html { height:100%; }
+        body { height:100%; overflow:hidden; margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; font-size:16px; color:#FFFFFF; background-color:#000000; }
+
+        .li{
+            width: 20%;height:50px;line-height: 50px;text-align: center;float:left
+        }
+    </style>
+</head>
+<body>
+    <!-- <script src="xml.js"></script> -->
+    <script src="tour.js"></script>
+    <!-- <div style="width: 100%;position: fixed;top: 0;z-index: 9999999;background: rgba(0,0,0,0.5)">
+        <div class="li" onclick="setView()">
+            设置视角
+        </div>
+        <div class="li" onclick="setEffect('http://test.res.jsvry.com/test/image/2019/07/24/effect_heart.png')">
+            设置特效
+        </div>
+        <div class="li" onclick="delEffect()">
+            取消特效
+        </div>
+        <div class="li" onclick="setHotspot('http://test.res.jsvry.com/local/image/2019/07/24/dynamics_turn_right.png')">
+            添加热点
+        </div>
+        <div class="li" onclick="delHotspot()">
+            删除热点
+        </div>
+        <div class="li" onclick="saveMusic('http://test.res.jsvry.com/local/audio/2019/08/27/1717162qh5rlt.mp3','音乐')">
+            设置音乐
+        </div>
+        <div class="li" onclick="saveInfo()">
+            设置info
+        </div>
+    </div>
+
+    <div style="width: 100%;height: 50px;position: fixed;bottom: 0;z-index: 9999999">
+        <div class="li" onclick="createSceneXml(357)">
+            场景一
+        </div>
+        <div class="li" onclick="createSceneXml(358)">
+            场景二
+        </div>
+    </div> -->
+    
+    <div id="pano" style="width:100%;height:100%;">
+        <noscript>
+            <table style="width:100%;height:100%;"><tr style="vertical-align:middle;">
+                <td>
+                    <div style="text-align:center;">ERROR:<br/><br/>Javascript not activated<br/><br/></div></td>
+                </tr>
+            </table>
+        </noscript>
+    </div>
+    <script src="public/js/utils.js"></script>
+    <script src="public/js/data.js"></script>
+    
+    <script src="public/js/effect.js"></script>
+    <script src="public/js/view.js"></script>
+    <script src="public/js/hotspot.js"></script>
+    <script type="text/javascript">
+
+        var krpano = null;
+        var k;               //把krpan抛到全局
+        var xml = '';        //场景xml
+        var sceneId = getLS('sceneId') == null ? 0 : getLS('sceneId');     //当前操作sceneId
+        var localStorageData = JSON.parse(getLS('global_data'));
+        if (localStorageData == null) {  //由于第一次加载页面获取不到localstorage
+            document.location.reload();
+        }
+        var scenes = localStorageData.scenes;
+        var currentScene = '';
+        
+        embedpano({
+            swf: "tour.swf",
+            xml: "edit.xml",
+            target: "pano",
+            html5: "prefer",
+            mobilescale: 1.0,
+            passQueryParameters: true,
+            consolelog: true,
+            onready:function(kr){
+                k = kr.get('global');
+                // k.call("showlog()");
+
+            }
+        });
+
+        function createSceneXml(id){
+            xml = '';  //切换场景时清空scene里的xml
+            if (id == 0) {
+                setLS('sceneId',scenes[0].id);
+                sceneId = scenes[0].id;
+                id = scenes[0].id;
+            }
+            setLS('sceneId',id);  //把当前场景id存入local storage
+
+            scenes.forEach((item)=>{        //编辑当前修改的场景
+                if (item.id == id) {
+                    currentScene = item
+                }
+            });
+
+            if (localStorageData) {
+                if (currentScene.view == null) {
+                    xml += '<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fovmin="70" fovmax="140" fov="95" limitview="lookat"/>';
+                }else{
+                    xml += '<view hlookat="'+currentScene.view.hlookat+'" hlookatmax="'+currentScene.view.hlookatmax+'" hlookatmin="'+currentScene.view.hlookatmin+'" vlookat="'+currentScene.view.vlookat+'" vlookatmax="'+currentScene.view.vlookatmax+'" vlookatmin="'+currentScene.view.vlookatmin+'" fovtype="MFOV" fovmin="'+currentScene.view.fovmin+'" fovmax="'+currentScene.view.fovmax+'" fov="'+currentScene.view.fov+'" limitview="lookat"/>';
+                }
+                xml += '<preview url="'+currentScene.scene_preview.url+'"/>';
+                xml += '<image type="CUBE" multires="true" tilesize="'+currentScene.scene_image.tilesize+'">';
+                for (var i = 0; i < currentScene.level.length; i++) {
+                    xml += '<level tiledimagewidth="'+currentScene.level[i].w+'" tiledimageheight="'+currentScene.level[i].h+'">';
+                    xml += '<cube url="'+currentScene.domain+currentScene.path+currentScene.level[i].url+'"/>';
+                    xml += '</level>';
+                }
+                xml += '</image>';
+            }
+            initialScene(xml);
+        }
+        createSceneXml(sceneId);
+
+        //创建场景
+        function initialScene(newXml){
+
+            initialEffect(); //切换场景时初始化特效
+            
+            k.set('scene[main_scene].content',newXml);
+            k.call("loadscene('main_scene')");
+
+            initialHotspot(); //切换场景时初始化热点
+        }
+
+        //js传入app scenelist
+        var newScenes = [];
+        for(s_k in scenes){ //循环场景
+            var newEffect = {};
+            var newHotsopt = [];
+            if (scenes[s_k].effect != null) { //当特效不为空的时候 重新组装特效
+                newEffect = {
+                    imageUrl: scenes[s_k].effect.imageUrl,
+                    flakes: scenes[s_k].effect.flakes
+                }
+            }
+
+            if (scenes[s_k].hotspot.length > 0) {  //当有热点的时候重新组装热点
+                for(h_k in scenes[s_k].hotspot){
+                    if (scenes[s_k].hotspot[h_k].action == 1) {
+                        newHotsopt.push({
+                            id: scenes[s_k].hotspot[h_k].id,
+                            sceneId: scenes[s_k].hotspot[h_k].actionData.sceneId ? scenes[s_k].hotspot[h_k].actionData.sceneId : '',
+                            title: scenes[s_k].hotspot[h_k].title,
+                            url: scenes[s_k].hotspot[h_k].url,
+                        })
+                    }
+                }
+            }
+
+            var newSceneData = {
+                id: scenes[s_k].id,
+                url: scenes[s_k].thumb.url,
+                hotspot: newHotsopt,
+                effect: newEffect,
+            };
+
+            newScenes.push(newSceneData);
+        }
+        console.log(newScenes)
+        dsBridge.call("getSceneData", newScenes, function(){});
+
+        //app传入js sceneId
+        dsBridge.register('appSetSceneId', function (data) {
+            sceneId = data;
+            createSceneXml(data);
+        });
+
+        //app设置视角接口
+        dsBridge.register('appSetView', function (data) {
+            setView();
+            return {errcode: 0, errmsg: "设置成功"};
+        });
+
+        //app设置音乐接口
+        dsBridge.register('appSetMusic', function (data) {
+            saveMusic('http://test.res.jsvry.com/local/audio/2019/08/27/1717162qh5rlt.mp3','音乐');
+            return {errcode: 0, errmsg: "设置成功"};
+        });
+
+        //app传入js 设置特效
+        dsBridge.register('appEdit', function (data) {
+            var appEditData = JSON.parse(data);
+
+            if (appEditData.id != sceneId) {
+                sceneId = appEditData.id;
+                createSceneXml(sceneId);
+            }
+
+            switch(appEditData.type){
+                case 'dasicInfo':
+                    console.log('dasicInfo');
+                    break;
+                case 'sceneView':
+                    setView();
+                    break;
+                case 'hotspot':
+                    console.log('hotspot');
+                    break;
+                case 'effect':
+                    if (appEditData.data.url != '') {
+                        setEffect(appEditData.data.url);
+                    }else{
+                        delEffect();
+                    }
+                    break;
+                default:;
+            }
+
+            return {errcode: 0, errmsg: "设置成功"};
+        });
+
+    </script>
+</body>
+</html>
